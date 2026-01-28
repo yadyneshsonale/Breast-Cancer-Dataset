@@ -20,6 +20,15 @@ This dataset contains thermal breast imaging data from **86 patients** (labeled 
 
 The ROIs were segmented from the publicly available [DMR-IR dataset](https://data.mendeley.com/datasets/mhrt4svjxc/3) hosted on Mendeley Data.
 
+### How the Dataset Was Created
+
+1. **Hotspot Identification**: A region of interest (ROI) showing high metabolic activity (hotspot) was identified on one breast in the thermal image using the labels provided in the DMR-IR dataset
+2. **Bounding Box Extraction**: A rectangular bounding box was drawn around the identified ROI to extract the region
+3. **Symmetric Region Extraction**: A bounding box of the **same dimensions** was placed at the **symmetric location** on the contralateral (opposite) breast
+4. **Pair Creation**: Both extracted regions were saved as an image pair for comparison
+
+This symmetric extraction approach allows for direct comparison between the suspicious region and its anatomically corresponding region on the healthy breast.
+
 ## Clinical Methodology
 
 During initial breast cancer screening using thermal imaging, clinicians identify regions with high metabolic activity — these appear as **hotspots** (whiter areas compared to surrounding tissue). Once a hotspot is identified on one breast, the corresponding **symmetric region** on the contralateral (other) breast is examined.
