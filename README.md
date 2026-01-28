@@ -101,7 +101,7 @@ Copyright (c) 2026 Yadynesh D Sonale
 
 This dataset is intended for research and educational purposes only. It should not be used as a substitute for professional medical advice, diagnosis, or treatment.
 
-## Citation
+## Dataset Citation
 
 If you use this dataset in your research, please cite:
 
