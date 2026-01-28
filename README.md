@@ -65,16 +65,6 @@ This dataset was created by segmenting ROIs from the DMR-IR database:
 
 > **DMR-IR Database**: [https://data.mendeley.com/datasets/mhrt4svjxc/3](https://data.mendeley.com/datasets/mhrt4svjxc/3)
 
-## Related Publications
-
-This dataset has not been used in any publications yet. However, it was developed as part of the research presented in the following papers:
-
-1. **Yadynesh D Sonale**, et al. *"Deep learning-based classification of breast abnormalities using thermal imaging and ResNet-50."* In Proceedings of the **ASME International Mechanical Engineering Congress & Exposition (IMECE), 2025**.  
-   📄 [Paper Link](https://asme.pinetec.com/imece-india2025/data/pdfs/trk-9/IMECE-INDIA2025-161705.pdf)
-
-2. **Yadynesh D Sonale**, et al. *"A comparative study of pre-trained deep learning models with and without pre-processing for multi-class classification of thermal breast images in early cancer detection."* In Proceedings of the **ASME International Mechanical Engineering Congress & Exposition (IMECE), 2025**.  
-   📄 [Paper Link](https://asme.pinetec.com/imece-india2025/data/pdfs/trk-6/IMECE-INDIA2025-161724.pdf)
-
 ## Usage
 
 This dataset can be used for:
@@ -124,3 +114,13 @@ If you use this dataset in your research, please cite:
   url       = {https://github.com/YOUR_USERNAME/Breast-Cancer-Dataset}
 }
 ```
+
+## Related Publications
+
+This dataset has not been used in any publications yet. However, it was developed as part of the research presented in the following papers:
+
+1. **Yadynesh D Sonale**, et al. *"Deep learning-based classification of breast abnormalities using thermal imaging and ResNet-50."* In Proceedings of the **ASME International Mechanical Engineering Congress & Exposition (IMECE), 2025**.  
+   📄 [Paper Link](https://asme.pinetec.com/imece-india2025/data/pdfs/trk-9/IMECE-INDIA2025-161705.pdf)
+
+2. **Yadynesh D Sonale**, et al. *"A comparative study of pre-trained deep learning models with and without pre-processing for multi-class classification of thermal breast images in early cancer detection."* In Proceedings of the **ASME International Mechanical Engineering Congress & Exposition (IMECE), 2025**.  
+   📄 [Paper Link](https://asme.pinetec.com/imece-india2025/data/pdfs/trk-6/IMECE-INDIA2025-161724.pdf)
