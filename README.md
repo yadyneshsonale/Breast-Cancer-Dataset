@@ -9,10 +9,54 @@ A curated dataset of breast cancer thermal images with manually identified and s
 3. 📥 **Clone** your forked repository:
    ```bash
    git clone https://github.com/YOUR_USERNAME/Breast-Cancer-Dataset.git
+   cd Breast-Cancer-Dataset
    ```
 4. 📂 Access the data in the `data/` folder organized by patient
 
 > If you use this dataset in your research, please consider citing the publications listed below.
+
+## 🔧 Setup Instructions
+
+### Prerequisites
+- Python 3.8 or higher
+- pip (Python package manager)
+
+### Setting Up a Virtual Environment
+
+1. **Create a virtual environment:**
+   ```bash
+   python3 -m venv venv
+   ```
+
+2. **Activate the virtual environment:**
+   - **On macOS/Linux:**
+     ```bash
+     source venv/bin/activate
+     ```
+   - **On Windows:**
+     ```bash
+     venv\Scripts\activate
+     ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run the classifier:**
+   ```bash
+   python medical_image_classifier.py
+   ```
+
+5. **Deactivate the virtual environment (when done):**
+   ```bash
+   deactivate
+   ```
+
+### Troubleshooting
+- If you encounter issues installing TensorFlow on Apple Silicon Macs, you may need to use conda or install a compatible version
+- Ensure your virtual environment is activated before running any Python scripts
+- Use `pip list` to verify all packages are installed correctly
 
 ## Overview
 
