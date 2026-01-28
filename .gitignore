@@ -1,0 +1,48 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Model outputs
+*.h5
+*.pkl
+*.joblib
+*.pth
+*.pt
+saved_models/
+
+# Logs and outputs
+*.log
+logs/
+outputs/
+results/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/

@@ -110,3 +110,17 @@ Copyright (c) 2026 Yadynesh D Sonale
 ## Disclaimer
 
 This dataset is intended for research and educational purposes only. It should not be used as a substitute for professional medical advice, diagnosis, or treatment.
+
+## Citation
+
+If you use this dataset in your research, please cite:
+
+```bibtex
+@misc{sonale2026breastcancer,
+  author    = {Sonale, Yadynesh D},
+  title     = {Breast Cancer Thermal ROI Dataset},
+  year      = {2026},
+  publisher = {GitHub},
+  url       = {https://github.com/YOUR_USERNAME/Breast-Cancer-Dataset}
+}
+```
