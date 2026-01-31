@@ -11,7 +11,7 @@ A curated dataset of breast cancer thermal images with manually identified and s
    git clone https://github.com/YOUR_USERNAME/Breast-Cancer-Dataset.git
    cd Breast-Cancer-Dataset
    ```
-4. 📂 Access the data in the `data/` folder organized by patient
+4. 📂 Access the symmetry data in the `symmetry data/` folder organized by patient
 
 > If you use this dataset in your research, please consider citing the publications listed below.
 
@@ -43,9 +43,10 @@ A curated dataset of breast cancer thermal images with manually identified and s
    pip install -r requirements.txt
    ```
 
-4. **Run the classifier:**
+4. **Run the symmetry analysis code:**
    ```bash
-   python medical_image_classifier.py
+   cd code
+   python symmetry_code.py
    ```
 
 5. **Deactivate the virtual environment (when done):**
@@ -86,17 +87,26 @@ This is why the images are provided in **pairs** — each pair consists of the R
 
 ```
 Breast-Cancer-Dataset/
-├── medical_image_classifier.py    # Neural network classifier for PB/PM classification
-├── data/
+├── code/
+│   └── symmetry_code.py           # Neural network classifier for symmetry analysis
+├── paper_data/
+│   ├── left/                      # Segmented left breast images
+│   │   ├── IIR0001.png - IIR0118.png
+│   │   └── left.xlsx              # Metadata/labels
+│   └── right/                     # Segmented right breast images
+│       ├── IIR0001.png - IIR0118.png
+│       └── right.xlsx             # Metadata/labels
+├── symmetry data/
 │   ├── p1/
-│   │   ├── b1.jpg    # ROI from one breast (Possibly Benign)
-│   │   └── b2.jpg    # Symmetric ROI from contralateral breast (Possibly Benign)
+│   │   ├── b1.jpg                 # ROI from one breast (Possibly Benign)
+│   │   └── b2.jpg                 # Symmetric ROI from contralateral breast
 │   ├── p19/
-│   │   ├── m1.jpg    # ROI from one breast (Possibly Malignant)
-│   │   └── m2.jpg    # Symmetric ROI from contralateral breast (Possibly Malignant)
+│   │   ├── m1.jpg                 # ROI from one breast (Possibly Malignant)
+│   │   └── m2.jpg                 # Symmetric ROI from contralateral breast
 │   ├── ...
 │   └── p109/
 │       └── ...
+├── requirements.txt
 ├── LICENSE
 └── README.md
 ```
@@ -111,6 +121,30 @@ Breast-Cancer-Dataset/
 ## Data Collection
 
 The ROIs in this dataset were manually identified and segmented in collaboration with a medical doctor to ensure clinical accuracy and relevance for research purposes.
+
+## Paper Data (`paper_data/`)
+
+The `paper_data/` folder contains segmented breast images created to replicate the dataset methodology described in our research papers. **Note:** This is not the original data used in the papers, but rather data prepared by us following the same segmentation pipeline.
+
+### Segmentation Process
+
+This segmentation process involved delineating the boundaries of each breast to isolate them from the surrounding tissue and background. This step is crucial for ensuring that the subsequent analysis focuses solely on the breast tissue, thereby improving the accuracy and reliability of the results.
+
+By focusing exclusively on segmenting the breast tissue, the study aimed to eliminate potential sources of false positives, such as axillary lymph nodes, which can often appear in thermal images and may be mistakenly identified as areas of concern.
+
+### Folder Structure
+
+```
+paper_data/
+├── left/                    # Segmented left breast images
+│   ├── IIR0001.png          # Image files (IIR0001 - IIR0118)
+│   ├── ...
+│   └── left.xlsx            # Metadata/labels
+└── right/                   # Segmented right breast images
+    ├── IIR0001.png          # Image files (IIR0001 - IIR0118)
+    ├── ...
+    └── right.xlsx           # Metadata/labels
+```
 
 ## Source Dataset
 
@@ -128,20 +162,51 @@ This dataset can be used for:
 
 ## Code
 
-### `medical_image_classifier.py`
+### `symmetry_code.py`
 
-A simplified neural network classifier for medical images that categorizes images into two classes ("PB" - Possibly Benign and "PM" - Possibly Malignant).
+A neural network classifier for medical images that categorizes thermal breast ROIs into two classes: **PB** (Possibly Benign) and **PM** (Possibly Malignant) based on symmetry analysis.
 
 **Features:**
-- Processes grayscale image histograms as 256-dimensional feature vectors
+- Extracts grayscale image histograms as 256-dimensional feature vectors
+- Computes symmetry features by combining histogram data from paired ROIs
 - Uses a feedforward neural network with dropout layers for classification
-- Includes data loading, preprocessing, and model training
+- Includes data loading from the `symmetry data/` folder
 - Provides evaluation metrics and visualization of accuracy/loss curves
-- Generates ROC analysis for model performance assessment
+- Generates ROC curve analysis for model performance assessment
 
 **Quick Start:**
 ```bash
-python medical_image_classifier.py
+cd code
+python symmetry_code.py
+```
+
+### `resnet50_classifier.py`
+
+A deep learning classifier using pre-trained **ResNet-50** architecture for breast tumor classification into three categories: **N** (Normal), **PB** (Possibly Benign), and **PM** (Possibly Malignant).
+
+**Data Preprocessing:**
+- All 238 segmented images are resized to a fixed dimension of **244 × 244 pixels** with **3 channels (RGB)** to ensure uniformity and compatibility with deep learning architectures
+- Dataset is resampled to **550 samples** (440 training, 110 testing) to handle class imbalance
+- Oversampling techniques are used to balance the dataset
+- Data augmentation (rotation, flipping, cropping) is applied to reduce overfitting
+
+**Model Architecture:**
+- Pre-trained ResNet-50 on ImageNet as the base model
+- Additional custom layers: GlobalAveragePooling2D → Dense(512) → BatchNorm → Dropout(0.5) → Dense(256) → BatchNorm → Dropout(0.3) → Dense(3, softmax)
+- Training: 80% training / 20% testing split, 70 epochs
+
+**Features:**
+- Loads images from `paper_data/` folder with labels from Excel files
+- Class imbalance handling through oversampling
+- Data augmentation for improved generalization
+- Training/validation accuracy and loss visualization
+- ROC curve analysis for multi-class classification
+- Confusion matrix generation
+
+**Quick Start:**
+```bash
+cd code
+python resnet50_classifier.py
 ```
 
 ## License
@@ -160,7 +225,7 @@ If you use this dataset in your research, please cite:
 
 ```bibtex
 @misc{sonale2026breastcancer,
-  author    = {Sonale, Yadynesh D},
+  author    = {Sonale, Yadynesh D; Kumar, Avinash},
   title     = {Breast Cancer Thermal ROI Dataset},
   year      = {2026},
   publisher = {GitHub},
@@ -170,7 +235,7 @@ If you use this dataset in your research, please cite:
 
 ## Related Publications
 
-This dataset has not been used in any publications yet. However, it was developed as part of the research presented in the following papers:
+This dataset was developed as part of the research presented in the following papers:
 
 1. **Yadynesh D Sonale**, et al. *"Deep learning-based classification of breast abnormalities using thermal imaging and ResNet-50."* In Proceedings of the **ASME International Mechanical Engineering Congress & Exposition (IMECE), 2025**.  
    📄 [Paper Link](https://asme.pinetec.com/imece-india2025/data/pdfs/trk-9/IMECE-INDIA2025-161705.pdf)

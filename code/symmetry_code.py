@@ -26,7 +26,7 @@ def subs(arr1, arr2):
     return d
 
 # Dataset path
-dataset_path = "./data"
+dataset_path = "../symmetry data"
 
 database_b = []
 database_m = []
