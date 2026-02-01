@@ -16,15 +16,8 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
 
-# =========================================================
-# Reproducibility
-# =========================================================
 np.random.seed(42)
 tf.random.set_seed(42)
-
-# =========================================================
-# Configuration
-# =========================================================
 IMG_SIZE = 244
 NUM_CHANNELS = 3
 NUM_CLASSES = 3
