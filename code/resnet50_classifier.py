@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import tqdm
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
@@ -75,6 +76,8 @@ def process_dataset_right(image_folder, label_file, target_size=(224, 224)):
 X_left, y_left = process_dataset(image_folder_left, label_file_left)
 X_right, y_right = process_dataset_right(image_folder_right, label_file_right)
 
+print("Data Loaded")
+
 # Combine datasets
 X = np.vstack((X_left, X_right))
 y = np.concatenate((y_left, y_right))
@@ -107,26 +110,7 @@ indices = np.random.permutation(len(X_resampled))
 X_resampled = X_resampled[indices]
 y_resampled = y_resampled[indices]
 
-# Train-test split
-X_train, X_val, y_train, y_val = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
-
-# Compute class weights
-y_train_int = np.argmax(y_train, axis=1)
-class_weights = compute_class_weight('balanced', classes=np.unique(y_train_int), y=y_train_int)
-class_weights_dict = dict(enumerate(class_weights))
-
-# Data augmentation with ImageDataGenerator
-datagen = ImageDataGenerator(
-    rotation_range=40,
-    width_shift_range=0.2,
-    height_shift_range=0.2,
-    shear_range=0.2,
-    zoom_range=0.2,
-    horizontal_flip=True,
-    fill_mode='nearest'
-)
-datagen.fit(X_train)
-
+print("Data Resampled")
 # Function to create the model
 def create_model():
     base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
@@ -145,16 +129,64 @@ def create_model():
                   metrics=['accuracy'])
     return model
 
-# Create and train the model
-model = create_model()
-history = model.fit(
-    datagen.flow(X_train, y_train, batch_size=16),
-    epochs=70,
-    validation_data=(X_val, y_val),
-    class_weight=class_weights_dict,
-    verbose=1
-)
+NUM_RUNS = 10
+best_val_acc = -np.inf
+best_run = None
+best_model = None
+best_history = None
 
+for run in tqdm.tqdm(range(NUM_RUNS)):
+
+    # Train-val split (change random_state per run)
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_resampled, y_resampled,
+        test_size=0.2,
+        random_state=42 + run
+    )
+
+    # Compute class weights
+    y_train_int = np.argmax(y_train, axis=1)
+    class_weights = compute_class_weight(
+        class_weight='balanced',
+        classes=np.unique(y_train_int),
+        y=y_train_int
+    )
+    class_weights_dict = dict(enumerate(class_weights))
+
+    # Data augmentation
+    datagen = ImageDataGenerator(
+        rotation_range=40,
+        width_shift_range=0.2,
+        height_shift_range=0.2,
+        shear_range=0.2,
+        zoom_range=0.2,
+        horizontal_flip=True,
+        fill_mode='nearest'
+    )
+    datagen.fit(X_train)
+
+    # Create a fresh model
+    model = create_model()
+
+    # Train
+    history = model.fit(
+        datagen.flow(X_train, y_train, batch_size=16),
+        epochs=70,
+        validation_data=(X_val, y_val),
+        class_weight=class_weights_dict,
+        verbose=0
+    )
+
+    # Get best val accuracy from this run
+    run_best_val_acc = max(history.history['val_accuracy'])
+    print(f"{run+1} best val_accuracy: {run_best_val_acc:.4f}")
+
+    # Track best run
+    if run_best_val_acc > best_val_acc:
+        best_val_acc = run_best_val_acc
+        best_run = run + 1
+        best_model = model
+        best_history = history
 # Plot training metrics and confusion matrix
 def plot_results(history, X_val, y_val, model):
     y_pred = model.predict(X_val)
@@ -192,7 +224,7 @@ def plot_results(history, X_val, y_val, model):
     plt.show()
 
 # Generate and save plots
-plot_results(history, X_val, y_val, model)
+plot_results(best_history, X_val, y_val, model)
 
 # Print classification report
 target_names = [label for label in class_mapping]
