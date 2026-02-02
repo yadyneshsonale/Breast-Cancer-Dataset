@@ -1,200 +1,203 @@
 import os
 import numpy as np
 import pandas as pd
-import cv2
-import tensorflow as tf
 import matplotlib.pyplot as plt
-import tqdm
-
-from sklearn.utils import shuffle
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from tensorflow.keras.applications import ResNet50
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D, BatchNormalization
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
+from tensorflow.keras.applications.resnet50 import preprocess_input
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, GlobalAveragePooling2D
 from tensorflow.keras.utils import to_categorical
-from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.preprocessing.image import ImageDataGenerator, load_img, img_to_array
+from sklearn.utils.class_weight import compute_class_weight
+from sklearn.utils import resample
 
-np.random.seed(42)
-tf.random.set_seed(42)
-IMG_SIZE = 244
-NUM_CHANNELS = 3
-NUM_CLASSES = 3
-BATCH_SIZE = 32
-EPOCHS = 70
-NUM_RUNS = 3
+# Paths for datasets
+image_folder_left = "./Breast-Cancer-Dataset/paper_data/left"
+label_file_left = "./Breast-Cancer-Dataset/paper_data/left/left.xlsx"
 
-LABEL_MAP = {"N": 0, "PB": 1, "PM": 2}
-LABEL_NAMES = ["Normal", "Possibly Benign", "Possibly Malignant"]
+image_folder_right = "./Breast-Cancer-Dataset/paper_data/right"
+label_file_right = "./Breast-Cancer-Dataset/paper_data/right/right.xlsx"
 
-BASE_PATH = "/Users/yadyneshsonale/Desktop/Breast-Cancer-Dataset/paper_data"
-LEFT_PATH = os.path.join(BASE_PATH, "left")
-RIGHT_PATH = os.path.join(BASE_PATH, "right")
+# Ensure output directory
+output_dir = "plots"
+os.makedirs(output_dir, exist_ok=True)
 
-RESULTS_DIR = "../results"
-os.makedirs(RESULTS_DIR, exist_ok=True)
+# Function to preprocess an image
+def preprocess_image(image_path, target_size=(224, 224)):
+    try:
+        image = load_img(image_path, target_size=target_size, color_mode='rgb')
+        image = img_to_array(image)
+        image = preprocess_input(image)
+        return image
+    except Exception as e:
+        print(f"Error processing image {image_path}: {e}")
+        return None
 
-print("=" * 60)
-print("ResNet-50 Breast Cancer Classification")
-print("=" * 60)
+# Function to process a dataset
+def process_dataset(image_folder, label_file, target_size=(224, 224)):
+    labels_df = pd.read_excel(label_file)
+    labels_df.set_index("Image", inplace=True)
+    labels_df.index = labels_df.index.astype(str)
 
-images, labels = [], []
+    X, y = [], []
+    for image_name in os.listdir(image_folder):
+        if image_name.endswith(".png"):
+            base_name = os.path.splitext(image_name)[0]
+            image_path = os.path.join(image_folder, image_name)
+            if base_name in labels_df.index:
+                processed_image = preprocess_image(image_path, target_size)
+                if processed_image is not None:
+                    X.append(processed_image)
+                    y.append(labels_df.loc[base_name, "Label"])
+    return np.array(X), np.array(y)
 
-left_df = pd.read_excel(os.path.join(LEFT_PATH, "left.xlsx"))
-for _, row in tqdm.tqdm(left_df.iterrows(), total=len(left_df)):
-    img_path = os.path.join(LEFT_PATH, f"{row['Image']}.png")
-    if os.path.exists(img_path):
-        img = cv2.imread(img_path)
-        if img is not None:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-            images.append(img)
-            labels.append(LABEL_MAP[row["Label"]])
+def process_dataset_right(image_folder, label_file, target_size=(224, 224)):
+    labels_df = pd.read_excel(label_file)
+    labels_df.set_index("Image", inplace=True)
+    labels_df.index = labels_df.index.astype(str)
 
-right_df = pd.read_excel(os.path.join(RIGHT_PATH, "right.xlsx"))
-for _, row in tqdm.tqdm(right_df.iterrows(), total=len(right_df)):
-    img_path = os.path.join(RIGHT_PATH, f"{row['Image']}.png")
-    if os.path.exists(img_path):
-        img = cv2.imread(img_path)
-        if img is not None:
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (IMG_SIZE, IMG_SIZE))
-            images.append(img)
-            labels.append(LABEL_MAP[row["Label"]])
+    X, y = [], []
+    for image_name in os.listdir(image_folder):
+        if image_name.endswith(".png"):
+            base_name = f"{os.path.splitext(image_name)[0]}_right"
+            image_path = os.path.join(image_folder, image_name)
+            if base_name in labels_df.index:
+                processed_image = preprocess_image(image_path, target_size)
+                if processed_image is not None:
+                    X.append(processed_image)
+                    y.append(labels_df.loc[base_name, "Label"])
+    return np.array(X), np.array(y)
 
-images = np.array(images, dtype="float32") / 255.0
-labels = np.array(labels)
+# Load and preprocess datasets
+X_left, y_left = process_dataset(image_folder_left, label_file_left)
+X_right, y_right = process_dataset_right(image_folder_right, label_file_right)
 
-print(f"\nLoaded {len(images)} images")
-TOTAL_SAMPLES = 550
-TEST_DISTRIBUTION = {"PM": 44, "PB": 36, "N": 30}
+print(len(X_left), len(X_right))
 
-samples_per_class = TOTAL_SAMPLES // NUM_CLASSES
-resampled_images, resampled_labels = [], []
+# Combine datasets
+X = np.vstack((X_left, X_right))
+y = np.concatenate((y_left, y_right))
 
-for class_idx in range(NUM_CLASSES):
-    class_imgs = images[labels == class_idx]
-    idx = np.random.choice(
-        len(class_imgs),
-        samples_per_class,
-        replace=len(class_imgs) < samples_per_class
+# Encode labels to integers
+class_mapping = {label: idx for idx, label in enumerate(np.unique(y))}
+y = np.array([class_mapping[label] for label in y])
+
+# One-hot encode labels
+y = to_categorical(y, num_classes=len(class_mapping))
+
+# Resample to balance classes
+X_resampled, y_resampled = [], []
+for class_idx in range(len(class_mapping)):
+    X_class = X[y.argmax(axis=1) == class_idx]
+    y_class = y[y.argmax(axis=1) == class_idx]
+    X_class_resampled, y_class_resampled = resample(
+        X_class, y_class, replace=True,
+        n_samples=max(len(X[y.argmax(axis=1) == i]) for i in range(len(class_mapping))),
+        random_state=42
     )
-    resampled_images.extend(class_imgs[idx])
-    resampled_labels.extend([class_idx] * samples_per_class)
+    X_resampled.append(X_class_resampled)
+    y_resampled.append(y_class_resampled)
 
-images = np.array(resampled_images)
-labels = np.array(resampled_labels)
+X_resampled = np.vstack(X_resampled)
+y_resampled = np.vstack(y_resampled)
 
-def build_model():
-    base_model = ResNet50(
-        weights="imagenet",
-        include_top=False,
-        input_shape=(IMG_SIZE, IMG_SIZE, NUM_CHANNELS)
-    )
+# Shuffle the dataset
+indices = np.random.permutation(len(X_resampled))
+X_resampled = X_resampled[indices]
+y_resampled = y_resampled[indices]
 
-    for layer in base_model.layers:
-        layer.trainable = True
+print(len(X_resampled))
 
-    x = base_model.output
-    x = GlobalAveragePooling2D()(x)
-    x = Dense(512, activation="relu")(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.5)(x)
-    x = Dense(256, activation="relu")(x)
-    x = BatchNormalization()(x)
-    x = Dropout(0.3)(x)
-    outputs = Dense(NUM_CLASSES, activation="softmax")(x)
+# Train-test split
+X_train, X_val, y_train, y_val = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
 
-    model = Model(inputs=base_model.input, outputs=outputs)
+# Compute class weights
+y_train_int = np.argmax(y_train, axis=1)
+class_weights = compute_class_weight('balanced', classes=np.unique(y_train_int), y=y_train_int)
+class_weights_dict = dict(enumerate(class_weights))
 
-    model.compile(
-        optimizer=Adam(learning_rate=1e-4),
-        loss="categorical_crossentropy",
-        metrics=["accuracy"]
-    )
+# Data augmentation with ImageDataGenerator
+datagen = ImageDataGenerator(
+    rotation_range=40,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+datagen.fit(X_train)
 
+# Function to create the model
+def create_model():
+    base_model = ResNet50(weights='imagenet', include_top=False, input_shape=(224, 224, 3))
+    model = Sequential([
+        base_model,
+        GlobalAveragePooling2D(),
+        Dense(128, activation='relu'),
+        Dropout(0.5),
+        Dense(len(class_mapping), activation='softmax')
+    ])
+    base_model.trainable = True
+    for layer in base_model.layers[:143]:
+        layer.trainable = False
+    model.compile(optimizer=Adam(learning_rate=1e-5),
+                  loss='categorical_crossentropy',
+                  metrics=['accuracy'])
     return model
 
-datagen = ImageDataGenerator(
-    rotation_range=20,
-    width_shift_range=0.1,
-    height_shift_range=0.1,
-    zoom_range=0.1,
-    horizontal_flip=True,
-    vertical_flip=True
+# Create and train the model
+model = create_model()
+history = model.fit(
+    datagen.flow(X_train, y_train, batch_size=16),
+    epochs=70,
+    validation_data=(X_val, y_val),
+    class_weight=class_weights_dict,
+    verbose=1
 )
 
-callbacks = [
-    ReduceLROnPlateau(monitor="val_loss", factor=0.2, patience=5, min_lr=1e-6),
-    EarlyStopping(monitor="val_loss", patience=15, restore_best_weights=True)
-]
+# Plot training metrics and confusion matrix
+def plot_results(history, X_val, y_val, model):
+    y_pred = model.predict(X_val)
+    y_pred_classes = np.argmax(y_pred, axis=1)
+    y_true_classes = np.argmax(y_val, axis=1)
 
-ACCURACY = 0.0
-SELECTED_HISTORY = None
-MODEL_SAVE_PATH = os.path.join(RESULTS_DIR, "resnet50.h5")
+    # Create plots
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
 
-for run in range(NUM_RUNS):
+    # Plot training accuracy and loss
+    axes[0].plot(history.history['accuracy'], label='Training Accuracy')
+    axes[0].plot(history.history['loss'], label='Training Loss')
+    axes[0].set_title('Training Metrics')
+    axes[0].set_xlabel('Epochs')
+    axes[0].set_ylabel('Value')
+    axes[0].legend()
 
-    images_shuffled, labels_shuffled = shuffle(
-        images, labels, random_state=42 + run
-    )
+    # Plot validation accuracy and loss
+    axes[1].plot(history.history['val_accuracy'], label='Validation Accuracy')
+    axes[1].plot(history.history['val_loss'], label='Validation Loss')
+    axes[1].set_title('Validation Metrics')
+    axes[1].set_xlabel('Epochs')
+    axes[1].set_ylabel('Value')
+    axes[1].legend()
 
-    X_train, y_train, X_test, y_test = [], [], [], []
+    # Plot confusion matrix
+    cm = confusion_matrix(y_true_classes, y_pred_classes)
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=list(class_mapping.keys()))
+    disp.plot(ax=axes[2], cmap=plt.cm.Blues, colorbar=False)
+    axes[2].set_title('Confusion Matrix')
 
-    for label_name, count in TEST_DISTRIBUTION.items():
-        class_idx = LABEL_MAP[label_name]
-        class_imgs = images_shuffled[labels_shuffled == class_idx]
+    # Save plots
+    plt.tight_layout()
+    plt.savefig(os.path.join(output_dir, 'results.png'))
+    plt.show()
 
-        selected = np.random.choice(len(class_imgs), count, replace=False)
+# Generate and save plots
+plot_results(history, X_val, y_val, model)
 
-        X_test.extend(class_imgs[selected])
-        y_test.extend([class_idx] * count)
-
-        remaining = list(set(range(len(class_imgs))) - set(selected))
-        X_train.extend(class_imgs[remaining])
-        y_train.extend([class_idx] * len(remaining))
-
-    X_train = np.array(X_train)
-    y_train = np.array(y_train)
-    X_test = np.array(X_test)
-    y_test = np.array(y_test)
-
-    X_train, y_train = shuffle(X_train, y_train, random_state=42)
-    X_test, y_test = shuffle(X_test, y_test, random_state=42)
-
-    y_train_cat = to_categorical(y_train, NUM_CLASSES)
-    y_test_cat = to_categorical(y_test, NUM_CLASSES)
-
-    model = build_model()
-
-    history = model.fit(
-        datagen.flow(X_train, y_train_cat, batch_size=BATCH_SIZE),
-        steps_per_epoch=len(X_train) // BATCH_SIZE,
-        epochs=EPOCHS,
-        validation_data=(X_test, y_test_cat),
-        callbacks=callbacks,
-        verbose=1
-    )
-
-    _, acc = model.evaluate(X_test, y_test_cat, verbose=0)
-
-    if acc > ACCURACY:
-        ACCURACY = acc
-        SELECTED_HISTORY = history.history
-        model.save(MODEL_SAVE_PATH)
-        print("Model saved")
-
-
-print(f"\nReported Test Accuracy: {ACCURACY * 100:.2f}%")
-print(f"Saved Model Path: {MODEL_SAVE_PATH}")
-
-plt.figure(figsize=(8, 5))
-plt.plot(SELECTED_HISTORY["accuracy"], label="Training Accuracy")
-plt.plot(SELECTED_HISTORY["val_accuracy"], label="Validation Accuracy")
-plt.xlabel("Epochs")
-plt.ylabel("Accuracy")
-plt.title("ResNet-50 Accuracy Curve")
-plt.legend()
-plt.grid(True)
-plt.show()
+# Print classification report
+target_names = [label for label in class_mapping]
+print(classification_report(np.argmax(y_val, axis=1), np.argmax(model.predict(X_val), axis=1), target_names=target_names))
