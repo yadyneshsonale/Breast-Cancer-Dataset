@@ -75,8 +75,6 @@ def process_dataset_right(image_folder, label_file, target_size=(224, 224)):
 X_left, y_left = process_dataset(image_folder_left, label_file_left)
 X_right, y_right = process_dataset_right(image_folder_right, label_file_right)
 
-print(len(X_left), len(X_right))
-
 # Combine datasets
 X = np.vstack((X_left, X_right))
 y = np.concatenate((y_left, y_right))
@@ -108,8 +106,6 @@ y_resampled = np.vstack(y_resampled)
 indices = np.random.permutation(len(X_resampled))
 X_resampled = X_resampled[indices]
 y_resampled = y_resampled[indices]
-
-print(len(X_resampled))
 
 # Train-test split
 X_train, X_val, y_train, y_val = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
