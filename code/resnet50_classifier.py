@@ -130,7 +130,7 @@ def create_model():
                   metrics=['accuracy'])
     return model
 
-NUM_RUNS = 10
+NUM_RUNS = 3
 best_val_acc = -np.inf
 best_run = None
 best_model = None
@@ -138,12 +138,15 @@ best_history = None
 
 print("Training Started")
 
-for run in tqdm.tqdm(range(NUM_RUNS)):
+from collections import Counter
+
+for run in range(NUM_RUNS):
     # Train-val split (change random_state per run)
     X_train, X_val, y_train, y_val = train_test_split(
         X_resampled, y_resampled,
         test_size=0.2,
-        random_state=42 + run
+        random_state=42 + run,
+        stratify=y_resampled
     )
 
     # Compute class weights
@@ -163,7 +166,7 @@ for run in tqdm.tqdm(range(NUM_RUNS)):
       ),
 
       ModelCheckpoint(
-          filepath=f'best_model_run_{run}.h5',
+          filepath=f'best_model_run_{run}.keras',
           monitor='val_accuracy',
           save_best_only=True,
           mode='max',
@@ -252,3 +255,4 @@ def plot_results(history, X_val, y_val, model):
 
 # Generate and save plots
 plot_results(best_history, X_val, y_val, model)
+print(f"Val_accuracy: {best_val_acc:.4f}")
