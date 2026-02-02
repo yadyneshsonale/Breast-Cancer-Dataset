@@ -5,6 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
+from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
 from tensorflow.keras.applications import ResNet50
 from tensorflow.keras.applications.resnet50 import preprocess_input
 from tensorflow.keras.models import Sequential
@@ -135,8 +136,9 @@ best_run = None
 best_model = None
 best_history = None
 
-for run in tqdm.tqdm(range(NUM_RUNS)):
+print("Training Started")
 
+for run in tqdm.tqdm(range(NUM_RUNS)):
     # Train-val split (change random_state per run)
     X_train, X_val, y_train, y_val = train_test_split(
         X_resampled, y_resampled,
@@ -152,7 +154,30 @@ for run in tqdm.tqdm(range(NUM_RUNS)):
         y=y_train_int
     )
     class_weights_dict = dict(enumerate(class_weights))
+    callbacks = [
+      EarlyStopping(
+          monitor='val_loss',
+          patience=10,
+          restore_best_weights=True,
+          verbose=0
+      ),
 
+      ModelCheckpoint(
+          filepath=f'best_model_run_{run}.h5',
+          monitor='val_accuracy',
+          save_best_only=True,
+          mode='max',
+          verbose=0
+      ),
+
+      ReduceLROnPlateau(
+          monitor='val_loss',
+          factor=0.3,
+          patience=5,
+          min_lr=1e-6,
+          verbose=0
+      )
+    ]
     # Data augmentation
     datagen = ImageDataGenerator(
         rotation_range=40,
@@ -174,6 +199,7 @@ for run in tqdm.tqdm(range(NUM_RUNS)):
         epochs=70,
         validation_data=(X_val, y_val),
         class_weight=class_weights_dict,
+        callbacks=callbacks,
         verbose=0
     )
 
@@ -187,6 +213,7 @@ for run in tqdm.tqdm(range(NUM_RUNS)):
         best_run = run + 1
         best_model = model
         best_history = history
+
 # Plot training metrics and confusion matrix
 def plot_results(history, X_val, y_val, model):
     y_pred = model.predict(X_val)
@@ -225,7 +252,3 @@ def plot_results(history, X_val, y_val, model):
 
 # Generate and save plots
 plot_results(best_history, X_val, y_val, model)
-
-# Print classification report
-target_names = [label for label in class_mapping]
-print(classification_report(np.argmax(y_val, axis=1), np.argmax(model.predict(X_val), axis=1), target_names=target_names))
