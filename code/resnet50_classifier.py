@@ -130,7 +130,7 @@ def create_model():
                   metrics=['accuracy'])
     return model
 
-NUM_RUNS = 5
+NUM_RUNS = 10
 best_val_acc = -np.inf
 best_run = None
 best_model = None
