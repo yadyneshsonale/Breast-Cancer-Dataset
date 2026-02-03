@@ -112,18 +112,33 @@ for model_name in ["vgg16", "inceptionv3"]:
     y = to_categorical([class_map[v] for v in y], len(class_map))
 
     # -------- Resample --------
-    X_res, y_res = [], []
-    max_n = max(Counter(np.argmax(y, axis=1)).values())
+    TARGET_SAMPLES = 183
 
-    for c in range(len(class_map)):
-        idx = np.argmax(y, axis=1) == c
-        Xc, yc = X[idx], y[idx]
-        Xu, yu = resample(Xc, yc, replace=True, n_samples=max_n, random_state=42)
-        X_res.append(Xu)
-        y_res.append(yu)
+    X_resampled = []
+    y_resampled = []
 
-    X_res = np.vstack(X_res)
-    y_res = np.vstack(y_res)
+    num_classes = y.shape[1]  # number of classes (from one-hot labels)
+
+    for class_idx in range(num_classes):
+        # Select samples of the current class
+        X_class = X[y.argmax(axis=1) == class_idx]
+        y_class = y[y.argmax(axis=1) == class_idx]
+
+        # Resample to exactly 183 samples
+        X_class_resampled, y_class_resampled = resample(
+            X_class,
+            y_class,
+            replace=True,              # oversampling allowed
+            n_samples=TARGET_SAMPLES,  # FIXED size
+            random_state=42
+        )
+
+        X_resampled.append(X_class_resampled)
+        y_resampled.append(y_class_resampled)
+
+    # Combine all classes
+    X_res = np.vstack(X_resampled)
+    y_res = np.vstack(y_resampled)
 
     perm = np.random.permutation(len(X_res))
     X_res, y_res = X_res[perm], y_res[perm]

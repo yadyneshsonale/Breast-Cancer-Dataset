@@ -91,18 +91,31 @@ y = np.array([class_mapping[label] for label in y])
 y = to_categorical(y, num_classes=len(class_mapping))
 
 # Resample to balance classes
-X_resampled, y_resampled = [], []
-for class_idx in range(len(class_mapping)):
+TARGET_SAMPLES = 183
+
+X_resampled = []
+y_resampled = []
+
+num_classes = y.shape[1]  # number of classes (from one-hot labels)
+
+for class_idx in range(num_classes):
+    # Select samples of the current class
     X_class = X[y.argmax(axis=1) == class_idx]
     y_class = y[y.argmax(axis=1) == class_idx]
+
+    # Resample to exactly 183 samples
     X_class_resampled, y_class_resampled = resample(
-        X_class, y_class, replace=True,
-        n_samples=max(len(X[y.argmax(axis=1) == i]) for i in range(len(class_mapping))),
+        X_class,
+        y_class,
+        replace=True,              # oversampling allowed
+        n_samples=TARGET_SAMPLES,  # FIXED size
         random_state=42
     )
+
     X_resampled.append(X_class_resampled)
     y_resampled.append(y_class_resampled)
 
+# Combine all classes
 X_resampled = np.vstack(X_resampled)
 y_resampled = np.vstack(y_resampled)
 
