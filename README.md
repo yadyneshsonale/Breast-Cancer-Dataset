@@ -229,7 +229,7 @@ If you use this dataset in your research, please cite:
   title     = {Breast Cancer Thermal ROI Dataset},
   year      = {2026},
   publisher = {GitHub},
-  url       = {https://github.com/YOUR_USERNAME/Breast-Cancer-Dataset}
+  url       = {https://github.com/yadyneshsonale/Breast-Cancer-Dataset}
 }
 ```
 
